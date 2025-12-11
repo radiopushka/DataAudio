@@ -31,8 +31,9 @@
 //в мальенкой комнате где отсутсвует какой либo магкий материал, ошибок не так много но они все ровно есть
 
 struct M66FSK_m{
-    Synth gen[33];
-    double lpf[33];
+    //two carriers for clock for redundancy
+    Synth gen[34];
+    double lpf[34];
     double sf;
     double alpha;
 

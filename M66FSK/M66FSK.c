@@ -13,7 +13,7 @@ M66FSK_M create_66fsk_mod(double start_freq, int sample_rate, double sf){
     mod->alpha = 1.0/lpf_factor;
 
     double strt_f = start_freq;
-    for(int i = 0;i<33;i++){
+    for(int i = 0;i<34;i++){
            mod->gen[i] = create_Synth(strt_f,sample_rate*4);
            strt_f += sf;
            strt_f += sf;
@@ -28,7 +28,7 @@ M66FSK_D create_66fsk_demod(double start_freq, int sample_rate, double sf){
     demod->samp_mult = 3;
     demod->samp_freq = demod->sample_size/demod->samp_mult;
 
-    const int freq = 66;
+    const int freq = 68;
     float freqs[freq];
     double strt_f = start_freq;
     for(int i = 0;i<freq;i++){
@@ -69,24 +69,30 @@ unsigned int pop_fsk_uint(M66FSK_D d){
 
 void _modulate_lpfs(M66FSK_M m,unsigned int data,int clock){
 
-    for(int i = 0;i<32;i++){
-        int val =  (data >> (31 - i))&1;
+    int count = 0;
+    for(double* restrict i = m->lpf+1;i<m->lpf+33;i++){
+        int val =  (data >> (31 - count))&1;
         double freq = (val ==  0)? 0.0 : m->sf;
-        m->lpf[i] = m->lpf[i]*(1-m->alpha) + (m->alpha)*freq;
+        *i = (*i)*(1-m->alpha) + (m->alpha)*freq;
+        count++;
     }
     double cfreq = (clock ==  0)? 0.0 : m->sf;
-    m->lpf[32] = m->lpf[32]*(1-m->alpha) + (m->alpha)*cfreq;
+    m->lpf[33] = m->lpf[33]*(1-m->alpha) + (m->alpha)*cfreq;
+    *(m->lpf) = (*(m->lpf))*(1-m->alpha) + (m->alpha)*cfreq;
 }
 
 double _create_sample(M66FSK_M m){
 
     double sample = 0;
-    for(int i = 0;i<33;i++){
-        double v1 = next_Sval_FM(m->gen[i], m->lpf[i]);
-        double v2 = next_Sval_FM(m->gen[i], m->lpf[i]);
-        double v3 = next_Sval_FM(m->gen[i], m->lpf[i]);
-        double v4 = next_Sval_FM(m->gen[i], m->lpf[i]);
-        sample += (v1+v2+v3+v4)*248.0;
+    double* lpf = m->lpf;
+
+    for(Synth* restrict g = m->gen;g<m->gen+34;g++){
+        double v1 = next_Sval_FM(*g, *lpf);
+        double v2 = next_Sval_FM(*g, *lpf);
+        double v3 = next_Sval_FM(*g, *lpf);
+        double v4 = next_Sval_FM(*g, *lpf);
+        sample += (v1+v2+v3+v4)*240.8;
+        lpf++;
     }
     return sample;
 }
@@ -129,10 +135,11 @@ unsigned int fsk_get_uint(M66FSK_D d,short* buffer){
         double* restrict amps = calculate_FFT(d->demod,cnvp,buff_smp);
 
         //get clock first
-        double c_zero = amps[64];
-        double c_one = amps[65];
+        double c_zero = amps[66] + amps[0];
+        double c_one = amps[68] + amps[1];
         int cur_clock = (c_zero > c_one)? 0:~0;
 
+        amps++;
         if(cur_clock != d->clock ){
 
             unsigned int val = 0;
@@ -151,7 +158,7 @@ unsigned int fsk_get_uint(M66FSK_D d,short* buffer){
             d->clock = cur_clock;
             d->samp_count = 0;
         }
-
+        amps++;
         for(double* restrict ins = d->r_avg;ins<d->r_avg + 64;ins++){
             *ins = *ins + *amps;
             amps++;
