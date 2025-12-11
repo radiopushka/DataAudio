@@ -37,13 +37,20 @@ struct M66FSK_m{
     double alpha;
 
     int sample_size;
+    int clock;
 };
 struct M66FSK_d{
     FFT demod;
     double r_avg[64];
-    int samp_count;
+    unsigned int data_stack[4];
 
+    int clock;
     int sample_size;
+    int samp_freq;
+    int samp_mult;
+    float* demod_list;
+    double samp_count;
+
 
 };
 typedef struct M66FSK_m* M66FSK_M;
@@ -51,5 +58,16 @@ typedef struct M66FSK_d* M66FSK_D;
 
 M66FSK_M create_66fsk_mod(double start_freq,int sample_rate, double sf);
 M66FSK_D create_66fsk_demod(double start_freq,int sample_rate,double sf);
+
+int fsk_get_buffer_size_m(M66FSK_M m);
+int fsk_get_buffer_size_d(M66FSK_D d);
+
+void fsk_put_uint(M66FSK_M m,unsigned int data,short* buffer);
+//returns the number of data fragments captured: run pop to retrieve
+unsigned int fsk_get_uint(M66FSK_D d,short* buffer);
+unsigned int pop_fsk_uint(M66FSK_D d);
+
+void free_66fsk_mod_m(M66FSK_M m);
+void free_66fsk_mod_d(M66FSK_D d);
 
 #endif
