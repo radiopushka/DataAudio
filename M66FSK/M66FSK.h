@@ -39,6 +39,8 @@ struct M66FSK_m{
 
     int sample_size;
     int clock;
+    //fm oscillator modulation to combat multipath
+    Synth lfm;
 };
 struct M66FSK_d{
     FFT demod;

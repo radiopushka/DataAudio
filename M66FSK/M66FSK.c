@@ -9,6 +9,8 @@ M66FSK_M create_66fsk_mod(double start_freq, int sample_rate, double sf){
     mod->sf = sf;
     mod->sample_size = sample_rate/8.0;
 
+    mod->lfm = create_Synth(2.667f,sample_rate*4);
+
     double lpf_factor = (sample_rate/2.0)/sf;
     mod->alpha = 1.0/lpf_factor;
 
@@ -49,6 +51,7 @@ void free_66fsk_mod_m(M66FSK_M m){
     for(int i = 0;i<33;i++){
         free_Synth(m->gen[i]);
     }
+    free_Synth(m->lfm);
     free(m);
 }
 void free_66fsk_mod_d(M66FSK_D d){
@@ -86,11 +89,17 @@ double _create_sample(M66FSK_M m){
     double sample = 0;
     double* lpf = m->lpf;
 
+    double m1 = next_Sval(m->lfm, 0);
+    double m2 = next_Sval(m->lfm, 0);
+    double m3 = next_Sval(m->lfm, 0);
+    double m4 = next_Sval(m->lfm, 0);
+    double mm = (m1+m2+m3+m4);
+
     for(Synth* restrict g = m->gen;g<m->gen+34;g++){
-        double v1 = next_Sval_FM(*g, *lpf);
-        double v2 = next_Sval_FM(*g, *lpf);
-        double v3 = next_Sval_FM(*g, *lpf);
-        double v4 = next_Sval_FM(*g, *lpf);
+        double v1 = next_Sval_FM(*g, *lpf + mm);
+        double v2 = next_Sval_FM(*g, *lpf + mm);
+        double v3 = next_Sval_FM(*g, *lpf + mm);
+        double v4 = next_Sval_FM(*g, *lpf + mm);
         sample += (v1+v2+v3+v4)*240.8;
         lpf++;
     }
